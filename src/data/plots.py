@@ -4,57 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import warnings
 from matplotlib.ticker import PercentFormatter
 
+from src.data.utils import ceildiv
+
 # warnings.filterwarnings("ignore", module="matplotlib\\..*", category=UserWarning)
-
-
-def count_nulls(df):
-    return df.isnull().sum().reset_index()
-
-def get_null_records(df):
-    """
-    Zwraca rekordy z DataFrame, które mają co najmniej jedną wartość null.
-    
-    Parametry:
-        df (pd.DataFrame): DataFrame do przeanalizowania
-        
-    Zwraca:
-        pd.DataFrame: DataFrame zawierający tylko rekordy z wartościami null
-    """
-    return df[df.isnull().any(axis=1)]
-
-def drop_duplicates(df, subset):
-    return df.drop_duplicates(subset=subset, keep='first')
-
-
-def count_duplicates(df: pd.DataFrame, columns: Union[str, List[str]]) -> pd.DataFrame:
-    """
-    Liczy duplikaty w zadanych kolumnach DataFrame.
-    
-    Parametry:
-        df (pd.DataFrame): DataFrame do przeanalizowania
-        columns (str lub List[str]): Nazwa kolumny lub lista kolumn, w których chcemy policzyć duplikaty
-        
-    Zwraca:
-        pd.DataFrame: DataFrame zawierający wartości i liczbę ich wystąpień,
-                     posortowany malejąco według liczby wystąpień
-    """
-    if isinstance(columns, str):
-        columns = [columns]
-        
-    duplicates = (df[columns]
-                 .value_counts()
-                 .to_frame('occurrences')
-                 .reset_index()
-                 .sort_values('occurrences', ascending=False))
-    
-    return duplicates
-
-
-def ceildiv(a, b):
-    return -(a // -b)
 
 
 def plot_hists(df, columns: List[str] = ['Exposure', 'ClaimNb'], plot_cols: int = 2):
@@ -418,13 +372,4 @@ def plot_heatmap(
     return lower_quantile, upper_quantile
 
 if __name__ == "__main__":
-    print(ceildiv(10, 3))
-
-    # DR = CleanedDataReader('/content/drive/MyDrive/EH/claims_data.csv')
-    # print(DR.invalid_lines)
-    # print(DR.correct_line_length)
-    # print(DR.original_data_size)
-    # print(DR.show_invalid_lines)
-    # df = DR.get_enhanced_data(index_col=0)
-    # print(df.head)
-    # print(df.shape)
+    pass
