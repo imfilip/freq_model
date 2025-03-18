@@ -1,0 +1,8 @@
+ipykernel
+jupyter
+jupyterlab
+notebook
+jupyter-client
+jupyter-core
+jupyterlab-server
+nbformat
