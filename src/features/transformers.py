@@ -1,6 +1,16 @@
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import FunctionTransformer
 import math
+
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import (
+    FunctionTransformer,
+    KBinsDiscretizer,
+    OneHotEncoder,
+    StandardScaler,
+    TargetEncoder
+)
 
 def drop_null_rows(X):
     return X.dropna(subset=['ClaimNb', 'Exposure'])
@@ -68,3 +78,116 @@ class CapTransformer(BaseEstimator, TransformerMixin):
             .apply(lambda x: self.cap_value if x > self.cap_value else self.else_func()(x))
         )
         return X
+    
+
+def create_feature_pipeline(
+    numerical_features,
+    categorical_features,
+    n_bins_drivage=20, 
+    n_bins_vehage=8, 
+    cap_values={
+        'VehPower': 13,
+        'VehAge': 21,
+        'DrivAge': 90,
+        'BonusMalus': 100,
+        'Density': 100_000
+    }
+):
+    """
+    Tworzy pipeline do przetwarzania cech z konfigurowalnymi parametrami.
+    
+    Parametry:
+    - n_bins_drivage: int - liczba przedziałów dla dyskretyzacji wieku kierowcy
+    - n_bins_vehage: int - liczba przedziałów dla dyskretyzacji wieku pojazdu
+    - cap_values: dict - słownik z wartościami granicznymi dla poszczególnych cech
+    
+    Zwraca:
+    - Pipeline - skonfigurowany pipeline do przetwarzania cech
+    """
+    numeric_pipeline = Pipeline(steps=[
+        ('impute', SimpleImputer(strategy='mean')),
+        ('scale', StandardScaler())
+    ])
+
+    categorical_pipeline = Pipeline(steps=[
+        ('impute', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    transformer_features = ColumnTransformer(transformers=[
+        ("binned_numeric_drivage", KBinsDiscretizer(n_bins=n_bins_drivage, random_state=0), ["DrivAge"]),
+        ("binned_numeric_vehage", KBinsDiscretizer(n_bins=n_bins_vehage, random_state=0), ["VehAge"]),
+        # ('target_encoding', TargetEncoder(random_state=0, cv=3), ['Region']),
+        ('number', numeric_pipeline, numerical_features),
+        ('category', categorical_pipeline, categorical_features),
+    ],
+    remainder='drop', 
+    force_int_remainder_cols=False,
+    verbose_feature_names_out=False
+    )
+
+    pipeline_features = Pipeline([
+        ('cap_veh_power', CapTransformer(column='VehPower', cap_value=cap_values['VehPower'], else_behaviour='identity')),
+        ('cap_veh_age', CapTransformer(column='VehAge', cap_value=cap_values['VehAge'], else_behaviour='identity')),
+        ('cap_driv_age', CapTransformer(column='DrivAge', cap_value=cap_values['DrivAge'], else_behaviour='identity')),
+        ('cap_bonus_malus', CapTransformer(column='BonusMalus', cap_value=cap_values['BonusMalus'], else_behaviour='int')),
+        ('cap_density', CapTransformer(column='Density', cap_value=cap_values['Density'], else_behaviour='log')),
+        ('transformer', transformer_features),
+    ])
+    
+    return pipeline_features
+
+def create_simple_feature_pipeline(
+    numerical_features,
+    categorical_features,
+    cap_values={
+        'VehPower': 13,
+        'VehAge': 21,
+        'DrivAge': 90,
+        'BonusMalus': 100,
+        'Density': 100_000
+    }
+):
+    """
+    Tworzy pipeline do przetwarzania cech z konfigurowalnymi parametrami.
+    
+    Parametry:
+    - n_bins_drivage: int - liczba przedziałów dla dyskretyzacji wieku kierowcy
+    - n_bins_vehage: int - liczba przedziałów dla dyskretyzacji wieku pojazdu
+    - cap_values: dict - słownik z wartościami granicznymi dla poszczególnych cech
+    
+    Zwraca:
+    - Pipeline - skonfigurowany pipeline do przetwarzania cech
+    """
+    numeric_pipeline = Pipeline(steps=[
+        ('impute', SimpleImputer(strategy='mean')),
+        ('scale', StandardScaler())
+    ])
+
+    categorical_pipeline = Pipeline(steps=[
+        ('impute', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    transformer_features = ColumnTransformer(transformers=[
+        ('number', numeric_pipeline, numerical_features),
+        ('category', categorical_pipeline, categorical_features),
+    ],
+    remainder='drop', 
+    force_int_remainder_cols=False,
+    verbose_feature_names_out=False
+    )
+
+    pipeline_features = Pipeline([
+        ('cap_veh_power', CapTransformer(column='VehPower', cap_value=cap_values['VehPower'], else_behaviour='identity')),
+        ('cap_veh_age', CapTransformer(column='VehAge', cap_value=cap_values['VehAge'], else_behaviour='identity')),
+        ('cap_driv_age', CapTransformer(column='DrivAge', cap_value=cap_values['DrivAge'], else_behaviour='identity')),
+        ('cap_bonus_malus', CapTransformer(column='BonusMalus', cap_value=cap_values['BonusMalus'], else_behaviour='int')),
+        ('cap_density', CapTransformer(column='Density', cap_value=cap_values['Density'], else_behaviour='log')),
+        ('transformer', transformer_features),
+    ])
+    
+    return pipeline_features
+
+if __name__ == "__main__":
+    pass

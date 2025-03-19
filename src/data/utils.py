@@ -75,6 +75,32 @@ def create_group_id(df: pd.DataFrame) -> pd.DataFrame:
     )
     return df_with_group_id
 
+def prepare_target_and_weights(train, test):
+    """
+    Prepares target variables and weights for frequency modeling.
+    
+    Parameters:
+    -----------
+    train : DataFrame
+        Training dataset containing ClaimNb and Exposure columns
+    test : DataFrame
+        Test dataset containing ClaimNb and Exposure columns
+        
+    Returns:
+    --------
+    tuple
+        (y_train, weights_train, y_freq_train, y_test, weights_test, y_freq_test)
+    """
+    y_train = train['ClaimNb']
+    weights_train = train['Exposure']
+    y_freq_train = y_train / weights_train
+
+    y_test = test['ClaimNb'] 
+    weights_test = test['Exposure']
+    y_freq_test = y_test / weights_test
+    
+    return y_train, weights_train, y_freq_train, y_test, weights_test, y_freq_test
+
 
 if __name__ == "__main__":
     import pandas as pd
