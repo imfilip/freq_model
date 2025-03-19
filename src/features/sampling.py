@@ -3,7 +3,7 @@ from typing import Union
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
-def calculate_frequency(df: pd.DataFrame) -> Union[float, int]:
+def calculate_frequency(df: pd.DataFrame, y_col: str = 'ClaimNb', exposure_col: str = 'Exposure') -> Union[float, int]:
     """
     Oblicza częstotliwość roszczeń na podstawie sumy roszczeń i ekspozycji.
 
@@ -13,7 +13,7 @@ def calculate_frequency(df: pd.DataFrame) -> Union[float, int]:
     Zwraca:
     - float lub int - Częstotliwość roszczeń.
     """
-    return df['ClaimNb'].sum() / df['Exposure'].sum()
+    return df[y_col].sum() / df[exposure_col].sum()
 
 def split_data_by_group_and_stratify(df, group_col='GroupID', stratify_col='ClaimNb', test_size=0.2, random_state=42):
     """

@@ -35,17 +35,19 @@ def freq_over_attribute_plot(
     df: pd.DataFrame,
     attribute: str,
     exp: str = "Exposure",
-    claims: str = "ClaimNb"
+    claims: str = "ClaimNb",
+    compare_to: str = "portfolio"  # New parameter to choose comparison type
 ) -> None:
     """
     Tworzy wykres częstotliwości szkód w zależności od określonego atrybutu, 
-    porównując częstotliwości marginalne z częstotliwościami portfelowymi.
+    porównując częstotliwości marginalne z częstotliwościami portfelowymi lub predykcjami.
 
     Parametry:
         df (pd.DataFrame): DataFrame zawierający dane ubezpieczeniowe.
         attribute (str): Nazwa kolumny atrybutu, który ma być analizowany.
         exposure_col (str): Nazwa kolumny reprezentującej ekspozycję. Domyślnie 'Exposure'.
         claims_col (str): Nazwa kolumny reprezentującej liczbę szkód. Domyślnie 'ClaimNb'.
+        compare_to (str): Typ porównania, 'portfolio' dla częstotliwości portfelowej lub 'prediction' dla predykcji.
 
     Zwraca:
         None: Wyświetla wykres.
@@ -54,15 +56,30 @@ def freq_over_attribute_plot(
     plt.close("all")
     plt.style.use("dark_background")
 
-    # Agregacja danych i obliczenie częstotliwości portfelowej
+    # Agregacja danych i obliczenie częstotliwości portfelowej lub predykcji
     data_to_plot = (
         df.groupby(by=[attribute])
         .agg({claims: "sum", exp: "sum"})
         .reset_index()
         .assign(MarginalFreq=lambda x: x[claims] / x[exp])
-        .assign(PortfolioFreq=lambda _: df[claims].sum() / df[exp].sum())
-        .assign(Rank=lambda x: x[attribute].rank(method="dense") - 1)
     )
+
+    if compare_to == "portfolio":
+        data_to_plot = data_to_plot.assign(ComparisonFreq=lambda _: df[claims].sum() / df[exp].sum())
+        comparison_label = "Portfolio Frequency"
+        comparison_title = "Comparison to portfolio frequency"
+    elif compare_to == "prediction" and "y_pred" in df.columns:
+        # Agregacja predykcji według atrybutu
+        pred_agg = df.groupby(by=[attribute]).agg({"y_pred": "sum", exp: "sum"}).reset_index()
+        # Łączenie z głównym DataFrame
+        data_to_plot = data_to_plot.merge(pred_agg[["y_pred", attribute]], on=attribute)
+        data_to_plot = data_to_plot.assign(ComparisonFreq=lambda x: x["y_pred"] / x[exp])
+        comparison_label = "Prediction Frequency"
+        comparison_title = "Comparison to prediction frequency"
+    else:
+        raise ValueError("Invalid comparison type or missing 'y_pred' column for prediction comparison.")
+
+    data_to_plot = data_to_plot.assign(Rank=lambda x: x[attribute].rank(method="dense") - 1)
 
     sorted_attributes = sorted(data_to_plot[attribute].unique())
 
@@ -110,12 +127,12 @@ def freq_over_attribute_plot(
         ax=ax2
     )
 
-    # Linia dla częstotliwości portfelowej
-    line_portfolio = sns.lineplot(
+    # Linia dla porównania
+    line_comparison = sns.lineplot(
         x="Rank",
-        y="PortfolioFreq",
+        y="ComparisonFreq",
         data=data_to_plot,
-        label="Portfolio Frequency",
+        label=comparison_label,
         marker="o",
         markersize=5,
         linewidth=3,
@@ -134,7 +151,7 @@ def freq_over_attribute_plot(
 
     # Tytuł
     fig.suptitle(f'Frequency over {attribute}', fontsize=20, fontweight='bold', y=0.98, color='white')
-    ax1.set_title('Comparison to portfolio frequency', fontsize=16, pad=20, color='white')
+    ax1.set_title(comparison_title, fontsize=16, pad=20, color='white')
     
     # Dodatkowe ustawienia
     ax1.spines['top'].set_visible(False)
