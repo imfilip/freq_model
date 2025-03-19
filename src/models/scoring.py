@@ -192,11 +192,15 @@ def plot_lorenz_curves(model_stats):
     plt.grid(True)
     plt.show()
 
-def plot_feature_importances(model):
+def plot_feature_importances(model=None, feature_names=None, importances=None):
     """Plot feature importances for the given model."""
     # Get feature names and importances
-    feature_names = model.named_steps['preprocessor'][-1].get_feature_names_out()
-    importances = model.named_steps['regressor'].feature_importances_
+    if model:
+        feature_names = model.named_steps['preprocessor'][-1].get_feature_names_out()
+        importances = model.named_steps['regressor'].feature_importances_
+    else:
+        feature_names = feature_names
+        importances = importances
 
     # Create a bar plot for feature importances
     indices = np.argsort(importances)[::-1]
